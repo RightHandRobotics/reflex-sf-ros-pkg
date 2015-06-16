@@ -11,7 +11,7 @@ import rospy
 import rospkg
 from std_msgs.msg import Float64
 
-from reflex_sf_msgs.msg import Pose
+from reflex_sf_msgs.msg import SFPose
 from motor import Motor
 
 
@@ -23,7 +23,7 @@ class ReflexSFHand(object):
                        '/reflex_sf_f2': Motor('/reflex_sf_f2'),
                        '/reflex_sf_f3': Motor('/reflex_sf_f3'),
                        '/reflex_sf_preshape': Motor('/reflex_sf_preshape')}
-        rospy.Subscriber('/reflex_sf/command', Pose, self.receiveCmdCb)
+        rospy.Subscriber('/reflex_sf/command', SFPose, self.receiveCmdCb)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
     def receiveCmdCb(self, data):

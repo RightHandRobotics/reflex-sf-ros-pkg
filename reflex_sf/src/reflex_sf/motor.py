@@ -22,8 +22,8 @@ class Motor(object):
         self.current_raw_position = 0.0
         self.current_pos = 0.0
         self.load = 0
-        self.OVERLOAD_THRESHOLD = 0.25
-        self.BLOCKED_VELOCITY = 0.1
+        self.OVERLOAD_THRESHOLD = 0.2 # overload threshold to avoid thermal issues
+        self.TAU = 0.1 # time constant of lowpass filter
         self.pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable',
                                                         TorqueEnable)
@@ -86,8 +86,8 @@ class Motor(object):
 
     def checkForOverload(self, load, velocity):
         if abs(load) > self.OVERLOAD_THRESHOLD\
-           and abs(velocity) < self.BLOCKED_VELOCITY:
-            print("Motor %s overloaded, loosening" %self.name)
+           and True:#abs(velocity) < self.BLOCKED_VELOCITY:
+            print("Motor %s overloaded at %f, loosening" % (self.name, load))
             self.loosen()
 
     def tighten(self, tighten_angle=0.05):
@@ -108,8 +108,9 @@ class Motor(object):
 
     def receiveStateCb(self, data):
         self.current_raw_position = data.current_pos
+        self.load = self.TAU * data.load + (1 - self.TAU) * self.load
         if self.flipped:
             self.current_position = self.zero_point - self.current_raw_position
         else:
             self.current_position = self.current_raw_position - self.zero_point
-        self.checkForOverload(data.load, data.velocity)
+        self.checkForOverload(self.load, data.velocity)
