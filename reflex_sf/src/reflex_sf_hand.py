@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # RightHand Robotics code for interfacing with a ReFlex SF hand
-#
+
 
 from os.path import join
 import yaml
