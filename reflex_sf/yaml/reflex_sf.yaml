@@ -9,7 +9,7 @@ reflex_sf_f1:
     joint_speed: 10
     motor:
         id: 1
-        init: 100 
+        init: 0
         min: 0
         max: 28672
 
@@ -24,7 +24,7 @@ reflex_sf_f2:
     joint_speed: 10
     motor:
         id: 2
-        init: 0 
+        init: 0
         min: 0
         max: 28672
 
@@ -39,7 +39,7 @@ reflex_sf_f3:
     joint_speed: 10
     motor:
         id: 3
-        init: 100 
+        init: 0
         min: 0
         max: 28672
 
@@ -54,6 +54,6 @@ reflex_sf_preshape:
     joint_speed: 10
     motor:
         id: 4
-        init: 100 
+        init: 0
         min: 0
         max: 28672
