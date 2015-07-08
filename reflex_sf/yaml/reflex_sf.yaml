@@ -7,6 +7,7 @@ reflex_sf_f1:
     flipped: False
     joint_name: reflex_sf_f1
     joint_speed: 10.0
+    max_speed: 15.0
     motor:
         id: 1
         init: 0
@@ -22,6 +23,7 @@ reflex_sf_f2:
     flipped: True
     joint_name: reflex_sf_f2
     joint_speed: 10.0
+    max_speed: 15.0
     motor:
         id: 2
         init: 0
@@ -37,6 +39,7 @@ reflex_sf_f3:
     flipped: False
     joint_name: reflex_sf_f3
     joint_speed: 10.0
+    max_speed: 15.0
     motor:
         id: 3
         init: 0
@@ -52,6 +55,7 @@ reflex_sf_preshape:
     flipped: True
     joint_name: reflex_sf_preshape
     joint_speed: 10.0
+    max_speed: 15.0
     motor:
         id: 4
         init: 0

@@ -12,6 +12,7 @@ import rospkg
 from std_msgs.msg import Float64
 
 from reflex_sf_msgs.msg import SFPose
+from reflex_sf_msgs.msg import SFVelocity
 from motor import Motor
 
 
@@ -23,14 +24,20 @@ class ReflexSFHand(object):
                        '/reflex_sf_f2': Motor('/reflex_sf_f2'),
                        '/reflex_sf_f3': Motor('/reflex_sf_f3'),
                        '/reflex_sf_preshape': Motor('/reflex_sf_preshape')}
-        rospy.Subscriber('/reflex_sf/command', SFPose, self.receiveCmdCb)
+        rospy.Subscriber('/reflex_sf/position_command', SFPose, self.receivePosCmdCb)
+        rospy.Subscriber('/reflex_sf/velocity_command', SFVelocity, self.receiveVelCmdCb)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
-    def receiveCmdCb(self, data):
+    def receivePosCmdCb(self, data):
         self.motors['/reflex_sf_f1'].setMotorPosition(data.f1)
         self.motors['/reflex_sf_f2'].setMotorPosition(data.f2)
         self.motors['/reflex_sf_f3'].setMotorPosition(data.f3)
         self.motors['/reflex_sf_preshape'].setMotorPosition(data.preshape)
+
+    def receiveVelCmdCb(self, data):
+        self.motors['/reflex_sf_f1'].setMotorVelocity(data.f1)
+        self.motors['/reflex_sf_f2'].setMotorVelocity(data.f2)
+        self.motors['/reflex_sf_f3'].setMotorVelocity(data.f3)
 
     def printMotorPositions(self):
         print ""  # visually separates following print messages in the flow
@@ -43,12 +50,12 @@ class ReflexSFHand(object):
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
 motor, or 'q' to indicate that the zero point has been reached\n")
             while not command.lower() == 'q':
-                if command.lower() == 't':
+                if command.lower() == 't' or command.lower() == 'tt':
                     print "Tightening motor " + motor
-                    self.motors[motor].tighten()
-                elif command.lower() == 'l':
+                    self.motors[motor].tighten(0.25 * len(command) - 0.2)
+                elif command.lower() == 'l' or command.lower() == 'll':
                     print "Loosening motor " + motor
-                    self.motors[motor].loosen()
+                    self.motors[motor].loosen(0.25 * len(command) - 0.2)
                 else:
                     print "Didn't recognize that command, use 't', 'l', or 'q'"
                 command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
