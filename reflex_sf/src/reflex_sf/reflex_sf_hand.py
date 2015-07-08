@@ -68,19 +68,10 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     def writeCurrentPositionsToZero(self):
         data = dict(
-            reflex_sf_f1=dict(
-                zero_point=self.motors['/reflex_sf_f1'].getRawCurrentPosition()
-            ),
-            reflex_sf_f2=dict(
-                zero_point=self.motors['/reflex_sf_f2'].getRawCurrentPosition()
-            ),
-            reflex_sf_f3=dict(
-                zero_point=self.motors['/reflex_sf_f3'].getRawCurrentPosition()
-            ),
-            reflex_sf_preshape=dict(
-                zero_point=
-                self.motors['/reflex_sf_preshape'].getRawCurrentPosition()
-            )
+            reflex_sf_f1=dict(zero_point=self.motors['/reflex_sf_f1'].getRawCurrentPosition()),
+            reflex_sf_f2=dict(zero_point=self.motors['/reflex_sf_f2'].getRawCurrentPosition()),
+            reflex_sf_f3=dict(zero_point=self.motors['/reflex_sf_f3'].getRawCurrentPosition()),
+            reflex_sf_preshape=dict(zero_point=self.motors['/reflex_sf_preshape'].getRawCurrentPosition())
         )
         self.writeZeroPointDataToFile('reflex_sf_zero_points.yaml', data)
 
