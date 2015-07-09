@@ -11,6 +11,7 @@ import rospy
 import rospkg
 from std_msgs.msg import Float64
 
+from reflex_sf_msgs.msg import SFCommand
 from reflex_sf_msgs.msg import SFPose
 from reflex_sf_msgs.msg import SFVelocity
 from motor import Motor
@@ -24,20 +25,26 @@ class ReflexSFHand(object):
                        '/reflex_sf_f2': Motor('/reflex_sf_f2'),
                        '/reflex_sf_f3': Motor('/reflex_sf_f3'),
                        '/reflex_sf_preshape': Motor('/reflex_sf_preshape')}
-        rospy.Subscriber('/reflex_sf/position_command', SFPose, self.receivePosCmdCb)
-        rospy.Subscriber('/reflex_sf/velocity_command', SFVelocity, self.receiveVelCmdCb)
+        rospy.Subscriber('/reflex_sf/command', SFCommand, self.receiveCmdCb)
+        rospy.Subscriber('/reflex_sf/command_position', SFPose, self.receivePosCmdCb)
+        rospy.Subscriber('/reflex_sf/command_velocity', SFVelocity, self.receiveVelCmdCb)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
-    def receivePosCmdCb(self, data):
+    def receiveCmdCb(self, data):
+        self.setSpeed(data.velocity)
+        self.setPosition(data.pose)
+
+    def setPosition(self, data):
         self.motors['/reflex_sf_f1'].setMotorPosition(data.f1)
         self.motors['/reflex_sf_f2'].setMotorPosition(data.f2)
         self.motors['/reflex_sf_f3'].setMotorPosition(data.f3)
         self.motors['/reflex_sf_preshape'].setMotorPosition(data.preshape)
 
-    def receiveVelCmdCb(self, data):
-        self.motors['/reflex_sf_f1'].setMotorVelocity(data.f1)
-        self.motors['/reflex_sf_f2'].setMotorVelocity(data.f2)
-        self.motors['/reflex_sf_f3'].setMotorVelocity(data.f3)
+    def setSpeed(self, data):
+        self.motors['/reflex_sf_f1'].setSpeed(data.f1)
+        self.motors['/reflex_sf_f2'].setSpeed(data.f2)
+        self.motors['/reflex_sf_f3'].setSpeed(data.f3)
+        self.motors['/reflex_sf_preshape'].setSpeed(data.preshape)
 
     def printMotorPositions(self):
         print ""  # visually separates following print messages in the flow
