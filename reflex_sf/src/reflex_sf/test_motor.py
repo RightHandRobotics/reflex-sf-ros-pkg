@@ -53,7 +53,7 @@ class TestMotor(unittest.TestCase):
 
         self.motor.set_motor_velocity(-3.98)
         set_speed_mock.called_once_with(-3.98)
-        check_mock.called_once_with(self.motor.zero_point)
+        check_mock.called_once_with(0.0)
 
     @mock.patch('motor.Motor.check_motor_speed_command')
     def test_set_motor_speed(self, check_mock):

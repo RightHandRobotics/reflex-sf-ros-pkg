@@ -14,54 +14,62 @@ from std_msgs.msg import Float64
 from reflex_sf_msgs.msg import SFCommand
 from reflex_sf_msgs.msg import SFPose
 from reflex_sf_msgs.msg import SFVelocity
-from motor import Motor
+import motor
 
 
 class ReflexSFHand(object):
     def __init__(self):
         rospy.init_node('reflex_sf')
         rospy.loginfo('Starting up the ReFlex SF hand')
-        self.motors = {'/reflex_sf_f1': Motor('/reflex_sf_f1'),
-                       '/reflex_sf_f2': Motor('/reflex_sf_f2'),
-                       '/reflex_sf_f3': Motor('/reflex_sf_f3'),
-                       '/reflex_sf_preshape': Motor('/reflex_sf_preshape')}
+        self.motors = {'/reflex_sf_f1': motor.Motor('/reflex_sf_f1'),
+                       '/reflex_sf_f2': motor.Motor('/reflex_sf_f2'),
+                       '/reflex_sf_f3': motor.Motor('/reflex_sf_f3'),
+                       '/reflex_sf_preshape': motor.Motor('/reflex_sf_preshape')}
         rospy.Subscriber('/reflex_sf/command', SFCommand, self.receive_cmd_cb)
-        rospy.Subscriber('/reflex_sf/command_position', SFPose, self.receive_pos_cmd_cb)
+        rospy.Subscriber('/reflex_sf/command_position', SFPose, self.receive_angle_cmd_cb)
         rospy.Subscriber('/reflex_sf/command_velocity', SFVelocity, self.receive_vel_cmd_cb)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
     def receive_cmd_cb(self, data):
-        self.set_speed(data.velocity)
-        self.set_position(data.pose)
+        self.set_speeds(data.velocity)
+        self.set_angles(data.pose)
 
-    def receive_pos_cmd_cb(self, data):
-        self.reset_speed()
-        self.set_position(data)
+    def receive_angle_cmd_cb(self, data):
+        self.reset_speeds()
+        self.set_angles(data)
 
     def receive_vel_cmd_cb(self, data):
-        self.set_velocity(data)
+        self.set_velocities(data)
 
-    def set_position(self, pose):
+    def set_angles(self, pose):
         self.motors['/reflex_sf_f1'].set_motor_angle(pose.f1)
         self.motors['/reflex_sf_f2'].set_motor_angle(pose.f2)
         self.motors['/reflex_sf_f3'].set_motor_angle(pose.f3)
         self.motors['/reflex_sf_preshape'].set_motor_angle(pose.preshape)
 
-    def set_velocity(self, velocity):
+    def set_velocities(self, velocity):
         self.motors['/reflex_sf_f1'].set_motor_velocity(velocity.f1)
         self.motors['/reflex_sf_f2'].set_motor_velocity(velocity.f2)
         self.motors['/reflex_sf_f3'].set_motor_velocity(velocity.f3)
         self.motors['/reflex_sf_preshape'].set_motor_velocity(velocity.preshape)
 
-    def set_speed(self, speed):
+    def set_speeds(self, speed):
         self.motors['/reflex_sf_f1'].set_motor_speed(speed.f1)
         self.motors['/reflex_sf_f2'].set_motor_speed(speed.f2)
         self.motors['/reflex_sf_f3'].set_motor_speed(speed.f3)
         self.motors['/reflex_sf_preshape'].set_motor_speed(speed.preshape)
 
-    def reset_speed(self):
+    def reset_speeds(self):
         for ID, motor in self.motors.items():
             motor.reset_motor_speed()
+
+    def disable_torque(self):
+        for ID, motor in self.motors.items():
+            motor.disable_torque()
+
+    def enable_torque(self):
+        for ID, motor in self.motors.items():
+            motor.enable_torque()
 
     def calibrate(self):
         for motor in sorted(self.motors):
@@ -80,9 +88,9 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                 command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
             rospy.loginfo("Saving current position for %s as the zero point",
                           motor)
-            self.motors[motor].setMotorZeroPoint()
+            self.motors[motor].set_local_motor_zero_point()
         print "Calibration complete, writing data to file"
-        self.write_current_positions_to_zero()
+        self.write_current_angles_to_zero()
 
     def write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
@@ -92,7 +100,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         with open(file_path, "w") as outfile:
             outfile.write(yaml.dump(data))
 
-    def write_current_positions_to_zero(self):
+    def write_current_angles_to_zero(self):
         data = dict(
             reflex_sf_f1=dict(zero_point=self.motors['/reflex_sf_f1'].get_current_raw_angle()),
             reflex_sf_f2=dict(zero_point=self.motors['/reflex_sf_f2'].get_current_raw_angle()),
@@ -100,14 +108,6 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             reflex_sf_preshape=dict(zero_point=self.motors['/reflex_sf_preshape'].get_current_raw_angle())
         )
         self.write_zero_point_data_to_file('reflex_sf_zero_points.yaml', data)
-
-    def disable_torque(self):
-        for ID, motor in self.motors.items():
-            motor.disable_torque()
-
-    def enable_torque(self):
-        for ID, motor in self.motors.items():
-            motor.enable_torque()
 
 
 def main():

@@ -27,7 +27,7 @@ class Motor(object):
         self.load = 0
         self.OVERLOAD_THRESHOLD = 0.2  # overload threshold to avoid thermal issues
         self.TAU = 0.1  # time constant of lowpass filter
-        self.pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
+        self.angle_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
         self.set_speed_service(self.JOINT_SPEED)
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable', TorqueEnable)
@@ -45,13 +45,13 @@ class Motor(object):
         return self.current_angle
 
     def set_raw_motor_angle(self, goal_pos):
-        self.pub.publish(goal_pos)
+        self.angle_cmd_pub.publish(goal_pos)
 
     def set_motor_angle(self, goal_pos):
         '''
         Bounds the given position command and sets it to the motor
         '''
-        self.pub.publish(self.check_motor_angle_command(goal_pos))
+        self.angle_cmd_pub.publish(self.check_motor_angle_command(goal_pos))
 
     def check_motor_angle_command(self, angle_command):
         '''
@@ -70,9 +70,9 @@ class Motor(object):
         '''
         self.set_motor_speed(goal_vel)
         if goal_vel > 0.0:
-            self.pub.publish(self.check_motor_angle_command(self.ANGLE_RANGE))
+            self.angle_cmd_pub.publish(self.check_motor_angle_command(self.ANGLE_RANGE))
         elif goal_vel < 0.0:
-            self.pub.publish(self.check_motor_angle_command(self.zero_point))
+            self.angle_cmd_pub.publish(self.check_motor_angle_command(0.0))
 
     def set_motor_speed(self, goal_speed):
         '''
