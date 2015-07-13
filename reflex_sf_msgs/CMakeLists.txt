@@ -20,6 +20,7 @@ add_message_files(
    FILES
    SFPose.msg
    SFVelocity.msg
+   SFCommand.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
