@@ -22,8 +22,8 @@ class Motor(object):
         self.JOINT_SPEED = rospy.get_param(self.name + '/joint_speed')
         self.MAX_SPEED = rospy.get_param(self.name + '/max_speed')
         self.FLIPPED = rospy.get_param(self.name + '/flipped')
-        self.current_raw_position = 0.0
-        self.current_pos = 0.0
+        self.current_raw_angle = 0.0
+        self.current_angle = 0.0
         self.load = 0
         self.OVERLOAD_THRESHOLD = 0.2  # overload threshold to avoid thermal issues
         self.TAU = 0.1  # time constant of lowpass filter
@@ -32,57 +32,69 @@ class Motor(object):
         self.set_speed_service(self.JOINT_SPEED)
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable', TorqueEnable)
         self.torque_enabled = True
-        self.sub = rospy.Subscriber(name + '/state', JointState, self.receiveStateCb)
+        self.sub = rospy.Subscriber(name + '/state', JointState, self.receive_state_cb)
 
-    def setMotorZeroPoint(self):
-        self.zero_point = self.current_raw_position
-        rospy.set_param(self.name + '/zero_point', self.current_raw_position)
+    def set_local_motor_zero_point(self):
+        self.zero_point = self.current_raw_angle
+        rospy.set_param(self.name + '/zero_point', self.current_raw_angle)
 
-    def getRawCurrentPosition(self):
-        return self.current_raw_position
+    def get_current_raw_angle(self):
+        return self.current_raw_angle
 
-    def getCurrentPosition(self):
-        return self.current_position
+    def get_current_angle(self):
+        return self.current_angle
 
-    def setRawMotorPosition(self, goal_pos):
+    def set_raw_motor_angle(self, goal_pos):
         self.pub.publish(goal_pos)
 
-    def setMotorPosition(self, goal_pos):
+    def set_motor_angle(self, goal_pos):
         '''
-        Bounds the given motor command and sets it to the motor
+        Bounds the given position command and sets it to the motor
         '''
-        self.set_speed_service(self.JOINT_SPEED)
-        self.pub.publish(self.checkMotorPositionCommand(goal_pos))
+        self.pub.publish(self.check_motor_angle_command(goal_pos))
 
-    def checkMotorPositionCommand(self, angle_command):
+    def check_motor_angle_command(self, angle_command):
         '''
         Returns given command if within the allowable range, returns bounded command if out of range
         '''
-        angle_command = self.correctMotorOffset(angle_command)
+        angle_command = self.correct_motor_offset(angle_command)
         if self.FLIPPED:
             bounded_command = max(min(angle_command, self.zero_point), self.zero_point - self.ANGLE_RANGE)
         else:
             bounded_command = min(max(angle_command, self.zero_point), self.zero_point + self.ANGLE_RANGE)
         return bounded_command
 
-    def setMotorVelocity(self, goal_vel):
+    def set_motor_velocity(self, goal_vel):
         '''
-        Bounds the given motor command and sets it to the motor. Commands finger in or out based on sign of velocity
+        Sets speed and commands finger in or out based on sign of velocity
         '''
-        self.set_speed_service(self.checkMotorVelocityCommand(goal_vel))
+        self.set_motor_speed(goal_vel)
         if goal_vel > 0.0:
-            self.pub.publish(self.checkMotorPositionCommand(self.ANGLE_RANGE))
+            self.pub.publish(self.check_motor_angle_command(self.ANGLE_RANGE))
         elif goal_vel < 0.0:
-            self.pub.publish(self.checkMotorPositionCommand(0.0))
+            self.pub.publish(self.check_motor_angle_command(self.zero_point))
 
-    def checkMotorVelocityCommand(self, vel_command):
+    def set_motor_speed(self, goal_speed):
         '''
-        Returns given command if within the allowable range, returns bounded command if out of range
+        Bounds the given position command and sets it to the motor
         '''
-        bounded_command = min(max(abs(vel_command), 0), self.MAX_SPEED)
+        self.set_speed_service(self.check_motor_speed_command(goal_speed))
+
+    def check_motor_speed_command(self, vel_command):
+        '''
+        Returns absolute of given command if within the allowable range, returns bounded command if out of range
+        Always returns positive (speed)
+        '''
+        bounded_command = min(abs(vel_command), self.MAX_SPEED)
         return bounded_command
 
-    def correctMotorOffset(self, angle_command):
+    def reset_motor_speed(self):
+        '''
+        Resets speed to default
+        '''
+        self.set_speed_service(self.JOINT_SPEED)
+
+    def correct_motor_offset(self, angle_command):
         '''
         Adjusts for the zero point offset
         '''
@@ -91,17 +103,17 @@ class Motor(object):
         else:
             return self.zero_point + angle_command
 
-    def enableTorque(self):
+    def enable_torque(self):
         self.torque_enabled = True
         self.torque_enable_service(True)
 
-    def disableTorque(self):
+    def disable_torque(self):
         self.torque_enabled = False
         self.torque_enable_service(False)
 
-    def loosenIfOverloaded(self, load, velocity):
-        if abs(load) > self.OVERLOAD_THRESHOLD and True:
-            print("Motor %s overloaded at %f, loosening" % (self.name, load))
+    def loosen_if_overloaded(self, load):
+        if abs(load) > self.OVERLOAD_THRESHOLD:
+            rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.name, load))
             self.loosen()
 
     def tighten(self, tighten_angle=0.05):
@@ -110,7 +122,7 @@ class Motor(object):
         '''
         if self.FLIPPED:
             tighten_angle *= -1
-        self.setRawMotorPosition(self.current_raw_position + tighten_angle)
+        self.set_raw_motor_angle(self.current_raw_angle + tighten_angle)
 
     def loosen(self, loosen_angle=0.05):
         '''
@@ -118,13 +130,13 @@ class Motor(object):
         '''
         if self.FLIPPED:
             loosen_angle *= -1
-        self.setRawMotorPosition(self.current_raw_position - loosen_angle)
+        self.set_raw_motor_angle(self.current_raw_angle - loosen_angle)
 
-    def receiveStateCb(self, data):
-        self.current_raw_position = data.current_pos
+    def receive_state_cb(self, data):
+        self.current_raw_angle = data.current_pos
         self.load = self.TAU * data.load + (1 - self.TAU) * self.load  # Rolling filter of noisy data
         if self.FLIPPED:
-            self.current_position = self.zero_point - self.current_raw_position
+            self.current_angle = self.zero_point - self.current_raw_angle
         else:
-            self.current_position = self.current_raw_position - self.zero_point
-        self.loosenIfOverloaded(self.load, data.velocity)
+            self.current_angle = self.current_raw_angle - self.zero_point
+        self.loosen_if_overloaded(self.load)
