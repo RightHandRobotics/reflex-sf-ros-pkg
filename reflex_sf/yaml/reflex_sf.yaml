@@ -1,13 +1,14 @@
 reflex_sf_f1:
-    angle_range: 5.0
+    max_motor_travel: 3.75
     controller:
         package: dynamixel_controllers
         module: joint_position_controller
         type: JointPositionController
-    flipped: False
     joint_name: reflex_sf_f1
-    joint_speed: 4.5
-    max_speed: 6.0
+    motor_to_joint_inverts: False
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
     motor:
         id: 1
         init: 0
@@ -15,15 +16,16 @@ reflex_sf_f1:
         max: 28672
 
 reflex_sf_f2:
-    angle_range: 5.0
+    max_motor_travel: 3.75
     controller:
         package: dynamixel_controllers
         module: joint_position_controller
         type: JointPositionController
-    flipped: True
     joint_name: reflex_sf_f2
-    joint_speed: 4.5
-    max_speed: 6.0
+    motor_to_joint_inverts: True
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
     motor:
         id: 2
         init: 0
@@ -31,15 +33,16 @@ reflex_sf_f2:
         max: 28672
 
 reflex_sf_f3:
-    angle_range: 5.0
+    max_motor_travel: 3.75
     controller:
         package: dynamixel_controllers
         module: joint_position_controller
         type: JointPositionController
-    flipped: False
     joint_name: reflex_sf_f3
-    joint_speed: 4.5
-    max_speed: 6.0
+    motor_to_joint_inverts: False
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
     motor:
         id: 3
         init: 0
@@ -47,15 +50,16 @@ reflex_sf_f3:
         max: 28672
 
 reflex_sf_preshape:
-    angle_range: 2.5
+    max_motor_travel: 1.75
     controller:
         package: dynamixel_controllers
         module: joint_position_controller
         type: JointPositionController
-    flipped: True
     joint_name: reflex_sf_preshape
-    joint_speed: 4.5
-    max_speed: 6.0
+    motor_to_joint_inverts: True
+    motor_to_joint_gear_ratio: 1.5
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
     motor:
         id: 4
         init: 0

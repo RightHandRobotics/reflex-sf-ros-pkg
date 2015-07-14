@@ -95,12 +95,12 @@ class TestReflexSFHand(unittest.TestCase):
         self.rh.motors['/reflex_sf_preshape'].enable_torque.called_once_with()
 
     @mock.patch('reflex_sf_hand.ReflexSFHand.write_zero_point_data_to_file')
-    def test_write_current_angles_to_zero(self, write_mock):
-        self.rh.write_current_angles_to_zero()
-        self.rh.motors['/reflex_sf_f1'].get_current_raw_angle.called_once_with()
-        self.rh.motors['/reflex_sf_f2'].get_current_raw_angle.called_once_with()
-        self.rh.motors['/reflex_sf_f3'].get_current_raw_angle.called_once_with()
-        self.rh.motors['/reflex_sf_preshape'].get_current_raw_angle.called_once_with()
+    def test_zero_current_pose(self, write_mock):
+        self.rh.zero_current_pose()
+        self.rh.motors['/reflex_sf_f1'].get_current_raw_motor_angle.called_once_with()
+        self.rh.motors['/reflex_sf_f2'].get_current_raw_motor_angle.called_once_with()
+        self.rh.motors['/reflex_sf_f3'].get_current_raw_motor_angle.called_once_with()
+        self.rh.motors['/reflex_sf_preshape'].get_current_raw_motor_angle.called_once_with()
         self.assertTrue(write_mock.called)
 
 

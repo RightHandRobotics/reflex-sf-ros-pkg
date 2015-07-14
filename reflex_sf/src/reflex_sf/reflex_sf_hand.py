@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-#
-# RightHand Robotics code for interfacing with a ReFlex SF hand
-
 
 from os.path import join
 import yaml
@@ -17,7 +14,7 @@ from reflex_sf_msgs.msg import SFVelocity
 import motor
 
 
-class ReflexSFHand(object):
+class ReflexSFHand():
     def __init__(self):
         rospy.init_node('reflex_sf')
         rospy.loginfo('Starting up the ReFlex SF hand')
@@ -79,10 +76,10 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             while not command.lower() == 'q':
                 if command.lower() == 't' or command.lower() == 'tt':
                     print "Tightening motor " + motor
-                    self.motors[motor].tighten(0.25 * len(command) - 0.2)
+                    self.motors[motor].tighten(0.35 * len(command) - 0.3)
                 elif command.lower() == 'l' or command.lower() == 'll':
                     print "Loosening motor " + motor
-                    self.motors[motor].loosen(0.25 * len(command) - 0.2)
+                    self.motors[motor].loosen(0.35 * len(command) - 0.3)
                 else:
                     print "Didn't recognize that command, use 't', 'l', or 'q'"
                 command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
@@ -90,7 +87,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                           motor)
             self.motors[motor].set_local_motor_zero_point()
         print "Calibration complete, writing data to file"
-        self.write_current_angles_to_zero()
+        self.zero_current_pose()
 
     def write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
@@ -100,12 +97,12 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         with open(file_path, "w") as outfile:
             outfile.write(yaml.dump(data))
 
-    def write_current_angles_to_zero(self):
+    def zero_current_pose(self):
         data = dict(
-            reflex_sf_f1=dict(zero_point=self.motors['/reflex_sf_f1'].get_current_raw_angle()),
-            reflex_sf_f2=dict(zero_point=self.motors['/reflex_sf_f2'].get_current_raw_angle()),
-            reflex_sf_f3=dict(zero_point=self.motors['/reflex_sf_f3'].get_current_raw_angle()),
-            reflex_sf_preshape=dict(zero_point=self.motors['/reflex_sf_preshape'].get_current_raw_angle())
+            reflex_sf_f1=dict(zero_point=self.motors['/reflex_sf_f1'].get_current_raw_motor_angle()),
+            reflex_sf_f2=dict(zero_point=self.motors['/reflex_sf_f2'].get_current_raw_motor_angle()),
+            reflex_sf_f3=dict(zero_point=self.motors['/reflex_sf_f3'].get_current_raw_motor_angle()),
+            reflex_sf_preshape=dict(zero_point=self.motors['/reflex_sf_preshape'].get_current_raw_motor_angle())
         )
         self.write_zero_point_data_to_file('reflex_sf_zero_points.yaml', data)
 
