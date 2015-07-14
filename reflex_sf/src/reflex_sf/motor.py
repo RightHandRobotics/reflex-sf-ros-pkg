@@ -55,9 +55,11 @@ class Motor(object):
         '''
         angle_command = self.correct_motor_offset(angle_command)
         if self.MOTOR_TO_JOINT_INVERTED:
-            bounded_command = max(min(angle_command, self.zero_point), self.zero_point - self.MAX_MOTOR_TRAVEL)
+            bounded_command = max(min(angle_command, self.zero_point),
+                                  self.zero_point - self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO)
         else:
-            bounded_command = min(max(angle_command, self.zero_point), self.zero_point + self.MAX_MOTOR_TRAVEL)
+            bounded_command = min(max(angle_command, self.zero_point),
+                                  self.zero_point + self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO)
         return bounded_command
 
     def set_motor_velocity(self, goal_vel):
@@ -129,10 +131,10 @@ class Motor(object):
     def receive_state_cb(self, data):
         self.current_raw_motor_angle = data.current_pos
         if self.MOTOR_TO_JOINT_INVERTED:
-            self.current_joint_angle = self.zero_point - self.current_raw_motor_angle
+            joint_angle = self.zero_point - self.current_raw_motor_angle
         else:
-            self.current_joint_angle = self.current_raw_motor_angle - self.zero_point
-        self.current_joint_angle /= self.MOTOR_TO_JOINT_GEAR_RATIO
+            joint_angle = self.current_raw_motor_angle - self.zero_point
+        self.current_joint_angle = joint_angle / self.MOTOR_TO_JOINT_GEAR_RATIO
         load_filter = 0.1
         self.load = load_filter * data.load + (1 - load_filter) * self.load  # Rolling filter of noisy data
         self.loosen_if_overloaded(self.load)
