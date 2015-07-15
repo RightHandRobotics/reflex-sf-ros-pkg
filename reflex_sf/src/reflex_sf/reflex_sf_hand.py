@@ -11,6 +11,7 @@ from std_msgs.msg import Float64
 from reflex_sf_msgs.msg import SFCommand
 from reflex_sf_msgs.msg import SFPose
 from reflex_sf_msgs.msg import SFVelocity
+import reflex_msgs.msg
 import motor
 
 
@@ -25,7 +26,7 @@ class ReflexSFHand():
         rospy.Subscriber('/reflex_sf/command', SFCommand, self.receive_cmd_cb)
         rospy.Subscriber('/reflex_sf/command_position', SFPose, self.receive_angle_cmd_cb)
         rospy.Subscriber('/reflex_sf/command_velocity', SFVelocity, self.receive_vel_cmd_cb)
-        self.hand_state_pub = rospy.Publisher('/reflex_sf/hand_state', SFPose, queue_size=10)
+        self.hand_state_pub = rospy.Publisher('/reflex_sf/hand_state', reflex_msgs.msg.Hand, queue_size=10)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
     def receive_cmd_cb(self, data):
@@ -70,11 +71,10 @@ class ReflexSFHand():
             motor.enable_torque()
 
     def publish_hand_state(self):
-        state = SFPose()
-        state.f1 = self.motors['/reflex_sf_f1'].get_current_joint_angle()
-        state.f2 = self.motors['/reflex_sf_f2'].get_current_joint_angle()
-        state.f3 = self.motors['/reflex_sf_f3'].get_current_joint_angle()
-        state.preshape = self.motors['/reflex_sf_preshape'].get_current_joint_angle()
+        state = reflex_msgs.msg.Hand()
+        motor_names = ('f1', 'f2', 'f3', 'preshape')
+        for i in range(4):
+            state.motor[i] = self.motors['/reflex_sf_' + motor_names[i]].get_motor_msg()
         self.hand_state_pub.publish(state)
 
     def calibrate(self):

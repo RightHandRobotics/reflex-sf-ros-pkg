@@ -4,6 +4,8 @@ from dynamixel_controllers.srv import SetSpeed
 import rospy
 from std_msgs.msg import Float64
 
+import reflex_msgs.msg
+
 
 class Motor(object):
     def __init__(self, name):
@@ -19,9 +21,7 @@ class Motor(object):
         self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.name + '/motor_to_joint_inverts')
         self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.name + '/motor_to_joint_gear_ratio')
         self.OVERLOAD_THRESHOLD = 0.2  # overload threshold to protect motors (unitless)
-        self.current_raw_motor_angle = 0.0
-        self.current_joint_angle = 0.0
-        self.load = 0
+        self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
         self.set_speed_service(self.DEFAULT_MOTOR_SPEED)
@@ -30,14 +30,20 @@ class Motor(object):
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self.receive_state_cb)
 
     def set_local_motor_zero_point(self):
-        self.zero_point = self.current_raw_motor_angle
-        rospy.set_param(self.name + '/zero_point', self.current_raw_motor_angle)
+        self.zero_point = self.motor_msg.raw_angle
+        rospy.set_param(self.name + '/zero_point', self.motor_msg.raw_angle)
 
     def get_current_raw_motor_angle(self):
-        return self.current_raw_motor_angle
+        return self.motor_msg.raw_angle
 
     def get_current_joint_angle(self):
-        return self.current_joint_angle
+        return self.motor_msg.joint_angle
+
+    def get_load(self):
+        return self.motor_msg.load
+
+    def get_motor_msg(self):
+        return self.motor_msg
 
     def set_raw_motor_angle(self, goal_pos):
         self.motor_cmd_pub.publish(goal_pos)
@@ -118,7 +124,7 @@ class Motor(object):
         '''
         if self.MOTOR_TO_JOINT_INVERTED:
             tighten_angle *= -1
-        self.set_raw_motor_angle(self.current_raw_motor_angle + tighten_angle)
+        self.set_raw_motor_angle(self.motor_msg.raw_angle + tighten_angle)
 
     def loosen(self, loosen_angle=0.05):
         '''
@@ -126,15 +132,21 @@ class Motor(object):
         '''
         if self.MOTOR_TO_JOINT_INVERTED:
             loosen_angle *= -1
-        self.set_raw_motor_angle(self.current_raw_motor_angle - loosen_angle)
+        self.set_raw_motor_angle(self.motor_msg.raw_angle - loosen_angle)
 
     def receive_state_cb(self, data):
-        self.current_raw_motor_angle = data.current_pos
+        # Calculate joint angle from motor angle
         if self.MOTOR_TO_JOINT_INVERTED:
-            joint_angle = self.zero_point - self.current_raw_motor_angle
+            joint_angle = self.zero_point - data.current_pos
         else:
-            joint_angle = self.current_raw_motor_angle - self.zero_point
-        self.current_joint_angle = joint_angle / self.MOTOR_TO_JOINT_GEAR_RATIO
+            joint_angle = data.current_pos - self.zero_point
+        self.motor_msg.joint_angle = joint_angle / self.MOTOR_TO_JOINT_GEAR_RATIO
+        self.motor_msg.raw_angle = data.current_pos
+        self.motor_msg.velocity = data.velocity
+
+        # Rolling filter of noisy data
         load_filter = 0.1
-        self.load = load_filter * data.load + (1 - load_filter) * self.load  # Rolling filter of noisy data
-        self.loosen_if_overloaded(self.load)
+        self.motor_msg.load = load_filter * data.load + (1 - load_filter) * self.motor_msg.load
+        self.loosen_if_overloaded(self.motor_msg.load)
+        self.motor_msg.temperature = data.motor_temps[0]
+        self.motor_msg.error_state = str(data.error)

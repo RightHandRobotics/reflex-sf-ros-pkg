@@ -24,6 +24,7 @@ class TestMotor(unittest.TestCase):
         self.motor.zero_point = 0.0
         self.motor.MAX_MOTOR_TRAVEL = 5.0
         self.motor.MOTOR_TO_JOINT_INVERTED = False
+        self.motor.MOTOR_TO_JOINT_GEAR_RATIO = 1.0
         correct_mock.return_value = 50.0
         self.assertAlmostEqual(self.motor.check_motor_angle_command(0.0), 5.0)
 
@@ -101,7 +102,7 @@ class TestMotor(unittest.TestCase):
     @mock.patch('motor.Motor.set_raw_motor_angle')
     def test_tighten_loosen(self, raw_mock):
         self.motor.MOTOR_TO_JOINT_INVERTED = False
-        self.motor.current_raw_motor_angle = 15.05
+        self.motor.motor_msg.raw_angle = 15.05
         self.motor.tighten()
         raw_mock.called_once_with(15.1)
         self.motor.tighten(0.95)
@@ -127,19 +128,19 @@ class TestMotor(unittest.TestCase):
         data.current_pos = 20.0
         data.load = 10.0
         self.motor.zero_point = 12.5
-        self.motor.load = 22.0
+        self.motor.motor_msg.load = 22.0
         self.motor.MOTOR_TO_JOINT_INVERTED = False
         self.motor.MOTOR_TO_JOINT_GEAR_RATIO = 2.0
 
         self.motor.receive_state_cb(data)
-        self.assertAlmostEqual(self.motor.current_raw_motor_angle, 20.0)
-        self.assertAlmostEqual(self.motor.load, 20.8)
-        self.assertAlmostEqual(self.motor.current_joint_angle, 3.75)
+        self.assertAlmostEqual(self.motor.motor_msg.raw_angle, 20.0)
+        self.assertAlmostEqual(self.motor.motor_msg.load, 20.8)
+        self.assertAlmostEqual(self.motor.motor_msg.joint_angle, 3.75)
         loose_mock.called_once_with(20.8)
 
         self.motor.MOTOR_TO_JOINT_INVERTED = True
         self.motor.receive_state_cb(data)
-        self.assertAlmostEqual(self.motor.current_joint_angle, -3.75)
+        self.assertAlmostEqual(self.motor.motor_msg.joint_angle, -3.75)
 
 
 if __name__ == '__main__':
