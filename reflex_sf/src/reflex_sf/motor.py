@@ -20,7 +20,7 @@ class Motor(object):
         self.MAX_MOTOR_TRAVEL = rospy.get_param(self.namespace + '/max_motor_travel')
         self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.namespace + '/motor_to_joint_inverts')
         self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.namespace + '/motor_to_joint_gear_ratio')
-        self.OVERLOAD_THRESHOLD = rospy.get_param(self.namespace + '/overload_thresh')
+        self.OVERLOAD_THRESHOLD = rospy.get_param(self.namespace + '/overload_threshold')
         self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
@@ -119,6 +119,13 @@ class Motor(object):
             rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
             self.loosen()
 
+    def control_torque(self, load, old_load):
+        goal_load = 0.1
+        error = goal_load - load
+        k = 1.0
+        # (0.025*z + 0.025) / z-1
+        # REMINDER: What is z? I forget
+
     def tighten(self, tighten_angle=0.05):
         '''
         Takes the given angle offset in radians and tightens the motor
@@ -146,8 +153,9 @@ class Motor(object):
         self.motor_msg.velocity = data.velocity
 
         # Rolling filter of noisy data
-        load_filter = 0.1
+        load_filter = 0.25
+        old_load = self.motor_msg.load
         self.motor_msg.load = load_filter * data.load + (1 - load_filter) * self.motor_msg.load
         self.loosen_if_overloaded(self.motor_msg.load)
+        self.control_torque(self.motor_msg.load, old_load)
         self.motor_msg.temperature = data.motor_temps[0]
-        self.motor_msg.error_state = str(data.error)
