@@ -1,9 +1,9 @@
 import rospy
  
-from reflex_sf_msgs.msg import SFPose
+from reflex_msgs.msg import PoseCommand
  
 rospy.init_node('reflex_sf_dof_tour')
-cmd_publisher = rospy.Publisher('/reflex_sf/command_position', SFPose, queue_size=10)
+cmd_publisher = rospy.Publisher('/reflex_sf/command_position', PoseCommand, queue_size=10)
 
 FINGER_CLOSED = 4.6
 FINGER_PINCH = 3.5 

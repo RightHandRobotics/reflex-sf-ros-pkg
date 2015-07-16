@@ -13,14 +13,14 @@ class Motor(object):
         Assumes that "name" is the name of the controller with a preceding
         slash, e.g. /reflex_sf_f1
         '''
-        self.name = name[1:]
-        self.zero_point = rospy.get_param(self.name + '/zero_point')
-        self.DEFAULT_MOTOR_SPEED = rospy.get_param(self.name + '/default_motor_speed')
-        self.MAX_MOTOR_SPEED = rospy.get_param(self.name + '/max_motor_speed')
-        self.MAX_MOTOR_TRAVEL = rospy.get_param(self.name + '/max_motor_travel')
-        self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.name + '/motor_to_joint_inverts')
-        self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.name + '/motor_to_joint_gear_ratio')
-        self.OVERLOAD_THRESHOLD = 0.2  # overload threshold to protect motors (unitless)
+        self.namespace = name[1:]
+        self.zero_point = rospy.get_param(self.namespace + '/zero_point')
+        self.DEFAULT_MOTOR_SPEED = rospy.get_param(self.namespace + '/default_motor_speed')
+        self.MAX_MOTOR_SPEED = rospy.get_param(self.namespace + '/max_motor_speed')
+        self.MAX_MOTOR_TRAVEL = rospy.get_param(self.namespace + '/max_motor_travel')
+        self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.namespace + '/motor_to_joint_inverts')
+        self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.namespace + '/motor_to_joint_gear_ratio')
+        self.OVERLOAD_THRESHOLD = rospy.get_param(self.namespace + '/overload_thresh')
         self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
@@ -31,7 +31,7 @@ class Motor(object):
 
     def set_local_motor_zero_point(self):
         self.zero_point = self.motor_msg.raw_angle
-        rospy.set_param(self.name + '/zero_point', self.motor_msg.raw_angle)
+        rospy.set_param(self.namespace + '/zero_point', self.motor_msg.raw_angle)
 
     def get_current_raw_motor_angle(self):
         return self.motor_msg.raw_angle
@@ -74,7 +74,8 @@ class Motor(object):
         '''
         self.set_motor_speed(goal_vel)
         if goal_vel > 0.0:
-            self.motor_cmd_pub.publish(self.check_motor_angle_command(self.MAX_MOTOR_TRAVEL))
+            max_command = self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO
+            self.motor_cmd_pub.publish(self.check_motor_angle_command(max_command))
         elif goal_vel < 0.0:
             self.motor_cmd_pub.publish(self.check_motor_angle_command(0.0))
 
@@ -84,12 +85,12 @@ class Motor(object):
         '''
         self.set_speed_service(self.check_motor_speed_command(goal_speed))
 
-    def check_motor_speed_command(self, vel_command):
+    def check_motor_speed_command(self, goal_speed):
         '''
         Returns absolute of given command if within the allowable range, returns bounded command if out of range
         Always returns positive (speed)
         '''
-        bounded_command = min(abs(vel_command), self.MAX_MOTOR_SPEED)
+        bounded_command = min(abs(goal_speed), self.MAX_MOTOR_SPEED)
         return bounded_command
 
     def reset_motor_speed(self):
@@ -115,7 +116,7 @@ class Motor(object):
 
     def loosen_if_overloaded(self, load):
         if abs(load) > self.OVERLOAD_THRESHOLD:
-            rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.name, load))
+            rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
             self.loosen()
 
     def tighten(self, tighten_angle=0.05):
