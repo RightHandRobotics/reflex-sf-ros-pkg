@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 
 from reflex_sf_msgs.msg import SFPose
@@ -19,11 +21,11 @@ def main():
         rospy.loginfo("Opening hand")
         cmd.f1 = 0.0
         pub.publish(cmd); pub.publish(cmd)
-        rospy.sleep(2.0)
+        rospy.sleep(10.0)
         rospy.loginfo("Closing hand, count %d", count)
         cmd.f1 = 4.0
         pub.publish(cmd); pub.publish(cmd)
-        rospy.sleep(2.0)
+        rospy.sleep(10.0)
         count += 1
 
 if __name__ == '__main__':
