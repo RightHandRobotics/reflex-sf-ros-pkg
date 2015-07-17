@@ -5,7 +5,7 @@ reflex_sf_f1:
         module: joint_position_controller
         type: JointPositionController
     joint_name: reflex_sf_f1
-    motor_to_joint_inverts: False
+    motor_to_joint_inverted: False
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
@@ -23,7 +23,7 @@ reflex_sf_f2:
         module: joint_position_controller
         type: JointPositionController
     joint_name: reflex_sf_f2
-    motor_to_joint_inverts: True
+    motor_to_joint_inverted: True
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
@@ -41,7 +41,7 @@ reflex_sf_f3:
         module: joint_position_controller
         type: JointPositionController
     joint_name: reflex_sf_f3
-    motor_to_joint_inverts: False
+    motor_to_joint_inverted: False
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
@@ -59,7 +59,7 @@ reflex_sf_preshape:
         module: joint_position_controller
         type: JointPositionController
     joint_name: reflex_sf_preshape
-    motor_to_joint_inverts: True
+    motor_to_joint_inverted: True
     motor_to_joint_gear_ratio: 1.5
     default_motor_speed: 4.5
     max_motor_speed: 6.0
