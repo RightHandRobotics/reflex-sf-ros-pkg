@@ -23,14 +23,15 @@ class Motor(object):
         self.OVERLOAD_THRESHOLD = rospy.get_param(self.namespace + '/overload_threshold')
         self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
+        self.in_control_torque_mode = False
+        self.goal_torque = 0.0
+        self.previous_load_control_output = 0.0
+        self.previous_load_control_error = 0.0
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
         self.set_speed_service(self.DEFAULT_MOTOR_SPEED)
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable', TorqueEnable)
         self.torque_enable_service(True)
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self.receive_state_cb)
-
-        self.last_output = 0.0
-
 
     def set_local_motor_zero_point(self):
         self.zero_point = self.motor_msg.raw_angle
@@ -111,6 +112,19 @@ class Motor(object):
         else:
             return self.zero_point + angle_command
 
+    def enable_torque_control(self):
+        self.in_control_torque_mode = True
+        self.previous_load_control_output = self.get_current_joint_angle()
+
+    def disable_torque_control(self):
+        self.in_control_torque_mode = False
+
+    def set_goal_torque(self, goal_torque):
+        '''
+        Bounds the given goal load and sets it as the goal
+        '''
+        self.goal_torque = min(max(goal_torque, 0.0), self.OVERLOAD_THRESHOLD)
+
     def enable_torque(self):
         self.torque_enable_service(True)
 
@@ -122,22 +136,13 @@ class Motor(object):
             rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
             self.loosen()
 
-    def control_torque(self, load, old_load, last_output):
-        if self.namespace == 'reflex_sf_f2':
-            goal_load = 0.18
-        elif self.namespace == 'reflex_sf_f3':
-            goal_load = 0.0
-        elif self.namespace == 'reflex_sf_f1':
-            goal_load = 0.18
-        else:
-            goal_load = 0.0
-
-        error = goal_load - load
-        last_error = goal_load - old_load
-        k = 3.0
-        output = last_output + k * 0.025 * (error + last_error)
+    def control_torque(self, current_torque):
+        current_error = self.goal_torque - current_torque
+        k = 3.0 * 0.025  # Compensator gain - higher gain has faster response and is more unstable
+        output = self.previous_load_control_output + k * (current_error + self.previous_load_control_error)
         self.set_motor_angle(output)
-        return output
+        self.previous_load_control_output = output
+        self.previous_load_control_error = current_error
 
     def tighten(self, tighten_angle=0.05):
         '''
@@ -164,13 +169,14 @@ class Motor(object):
         self.motor_msg.joint_angle = joint_angle / self.MOTOR_TO_JOINT_GEAR_RATIO
         self.motor_msg.raw_angle = data.current_pos
         self.motor_msg.velocity = data.velocity
-
-        # Rolling filter of noisy data
-        load_filter = 0.25
-        old_load = self.motor_msg.load
-        if not self.MOTOR_TO_JOINT_INVERTED:
-            data.load *= -1
-        self.motor_msg.load = load_filter * data.load + (1 - load_filter) * self.motor_msg.load
-        self.loosen_if_overloaded(self.motor_msg.load)
-        self.last_output = self.control_torque(self.motor_msg.load, old_load, self.last_output)
+        self.handle_motor_load(data.load)
         self.motor_msg.temperature = data.motor_temps[0]
+
+    def handle_motor_load(self, load):
+        load_filter = 0.25  # Rolling filter of noisy data
+        if not self.MOTOR_TO_JOINT_INVERTED:
+            load *= -1
+        self.motor_msg.load = load_filter * load + (1 - load_filter) * self.motor_msg.load
+        if self.in_control_torque_mode:
+            self.control_torque(self.motor_msg.load)
+        self.loosen_if_overloaded(self.motor_msg.load)

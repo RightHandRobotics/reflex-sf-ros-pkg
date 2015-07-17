@@ -9,7 +9,7 @@ reflex_sf_f1:
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
-    overload_threshold: 0.2
+    overload_threshold: 0.25
     motor:
         id: 1
         init: 0
@@ -27,7 +27,7 @@ reflex_sf_f2:
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
-    overload_threshold: 0.2
+    overload_threshold: 0.25
     motor:
         id: 2
         init: 0
@@ -45,7 +45,7 @@ reflex_sf_f3:
     motor_to_joint_gear_ratio: 1.42
     default_motor_speed: 4.5
     max_motor_speed: 6.0
-    overload_threshold: 0.2
+    overload_threshold: 0.25
     motor:
         id: 3
         init: 0
@@ -63,7 +63,7 @@ reflex_sf_preshape:
     motor_to_joint_gear_ratio: 1.5
     default_motor_speed: 4.5
     max_motor_speed: 6.0
-    overload_threshold: 0.2
+    overload_threshold: 0.15
     motor:
         id: 4
         init: 0
