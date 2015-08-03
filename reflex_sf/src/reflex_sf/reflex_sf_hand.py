@@ -7,6 +7,7 @@ from dynamixel_msgs.msg import JointState
 import rospy
 import rospkg
 from std_msgs.msg import Float64
+from std_srvs.srv import Empty
 
 from reflex_msgs.msg import ReflexCommand
 from reflex_msgs.msg import PoseCommand
@@ -30,6 +31,7 @@ class ReflexSFHand():
         rospy.Subscriber(self.namespace + '/command_velocity', VelocityCommand, self.receive_vel_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_motor_torque', TorqueCommand, self.receive_torque_cmd_cb)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state', reflex_msgs.msg.Hand, queue_size=10)
+        rospy.Service(self.namespace + '/zero_fingers', Empty, self.calibrate)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
     def receive_cmd_cb(self, data):
@@ -102,7 +104,7 @@ class ReflexSFHand():
             state.motor[i] = self.motors[self.namespace + motor_names[i]].get_motor_msg()
         self.hand_state_pub.publish(state)
 
-    def calibrate(self):
+    def calibrate(self, data=None):
         for motor in sorted(self.motors):
             rospy.loginfo("Calibrating motor " + motor)
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
@@ -117,11 +119,11 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                 else:
                     print "Didn't recognize that command, use 't', 'l', or 'q'"
                 command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
-            rospy.loginfo("Saving current position for %s as the zero point",
-                          motor)
+            rospy.loginfo("Saving current position for %s as the zero point", motor)
             self.motors[motor].set_local_motor_zero_point()
         print "Calibration complete, writing data to file"
         self.zero_current_pose()
+        return []
 
     def write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
@@ -142,6 +144,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
 
 def main():
+    rospy.sleep(5.0)  # To allow parameters to load
     hand = ReflexSFHand()
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
