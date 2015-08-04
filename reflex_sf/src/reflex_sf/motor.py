@@ -24,7 +24,7 @@ class Motor(object):
         self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.in_control_torque_mode = False
-        self.goal_torque = 0.0
+        self.torque_cmd = 0.0
         self.previous_load_control_output = 0.0
         self.previous_load_control_error = 0.0
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
@@ -119,11 +119,11 @@ class Motor(object):
     def disable_torque_control(self):
         self.in_control_torque_mode = False
 
-    def set_goal_torque(self, goal_torque):
+    def set_torque_cmd(self, torque_cmd):
         '''
         Bounds the given goal load and sets it as the goal
         '''
-        self.goal_torque = min(max(goal_torque, 0.0), self.OVERLOAD_THRESHOLD)
+        self.torque_cmd = min(max(torque_cmd, 0.0), self.OVERLOAD_THRESHOLD)
 
     def enable_torque(self):
         self.torque_enable_service(True)
@@ -131,18 +131,18 @@ class Motor(object):
     def disable_torque(self):
         self.torque_enable_service(False)
 
-    def loosen_if_overloaded(self, load):
-        if abs(load) > self.OVERLOAD_THRESHOLD:
-            rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
-            self.loosen()
-
     def control_torque(self, current_torque):
-        current_error = self.goal_torque - current_torque
+        current_error = self.torque_cmd - current_torque
         k = 3.0 * 0.025  # Compensator gain - higher gain has faster response and is more unstable
         output = self.previous_load_control_output + k * (current_error + self.previous_load_control_error)
         self.set_motor_angle(output)
         self.previous_load_control_output = output
         self.previous_load_control_error = current_error
+
+    def loosen_if_overloaded(self, load):
+        if abs(load) > self.OVERLOAD_THRESHOLD:
+            rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
+            self.loosen()
 
     def tighten(self, tighten_angle=0.05):
         '''

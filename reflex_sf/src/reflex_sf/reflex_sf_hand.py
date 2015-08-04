@@ -50,7 +50,7 @@ class ReflexSFHand():
 
     def receive_torque_cmd_cb(self, data):
         self.reset_speeds()
-        self.set_goal_torques(data)
+        self.set_torque_cmds(data)
         self.enable_torque_control()
 
     def set_angles(self, pose):
@@ -71,11 +71,11 @@ class ReflexSFHand():
         self.motors[self.namespace + '_f3'].set_motor_speed(speed.f3)
         self.motors[self.namespace + '_preshape'].set_motor_speed(speed.preshape)
 
-    def set_goal_torques(self, torque):
-        self.motors[self.namespace + '_f1'].set_goal_torque(torque.f1)
-        self.motors[self.namespace + '_f2'].set_goal_torque(torque.f2)
-        self.motors[self.namespace + '_f3'].set_goal_torque(torque.f3)
-        self.motors[self.namespace + '_preshape'].set_goal_torque(torque.preshape)
+    def set_torque_cmds(self, torque):
+        self.motors[self.namespace + '_f1'].set_torque_cmd(torque.f1)
+        self.motors[self.namespace + '_f2'].set_torque_cmd(torque.f2)
+        self.motors[self.namespace + '_f3'].set_torque_cmd(torque.f3)
+        self.motors[self.namespace + '_preshape'].set_torque_cmd(torque.preshape)
 
     def reset_speeds(self):
         for ID, motor in self.motors.items():
