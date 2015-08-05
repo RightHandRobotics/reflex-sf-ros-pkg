@@ -28,7 +28,7 @@ class Motor(object):
         self.previous_load_control_output = 0.0
         self.previous_load_control_error = 0.0
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
-        self.set_speed_service(self.DEFAULT_MOTOR_SPEED)
+        self.reset_motor_speed()
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable', TorqueEnable)
         self.torque_enable_service(True)
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self.receive_state_cb)
@@ -72,17 +72,6 @@ class Motor(object):
                                   self.zero_point + self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO)
         return bounded_command
 
-    def set_motor_velocity(self, goal_vel):
-        '''
-        Sets speed and commands finger in or out based on sign of velocity
-        '''
-        self.set_motor_speed(goal_vel)
-        if goal_vel > 0.0:
-            max_command = self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO
-            self.motor_cmd_pub.publish(self.check_motor_angle_command(max_command))
-        elif goal_vel < 0.0:
-            self.motor_cmd_pub.publish(self.check_motor_angle_command(0.0))
-
     def set_motor_speed(self, goal_speed):
         '''
         Bounds the given position command and sets it to the motor
@@ -103,6 +92,17 @@ class Motor(object):
         '''
         self.set_speed_service(self.DEFAULT_MOTOR_SPEED)
 
+    def set_motor_velocity(self, goal_vel):
+        '''
+        Sets speed and commands finger in or out based on sign of velocity
+        '''
+        self.set_motor_speed(goal_vel)
+        if goal_vel > 0.0:
+            max_command = self.MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO
+            self.motor_cmd_pub.publish(self.check_motor_angle_command(max_command))
+        elif goal_vel < 0.0:
+            self.motor_cmd_pub.publish(self.check_motor_angle_command(0.0))
+
     def correct_motor_offset(self, angle_command):
         '''
         Adjusts for the zero point offset
@@ -115,6 +115,7 @@ class Motor(object):
     def enable_torque_control(self):
         self.in_control_torque_mode = True
         self.previous_load_control_output = self.get_current_joint_angle()
+        self.previous_load_control_error = 0.0
 
     def disable_torque_control(self):
         self.in_control_torque_mode = False
@@ -140,6 +141,9 @@ class Motor(object):
         self.previous_load_control_error = current_error
 
     def loosen_if_overloaded(self, load):
+        '''
+        Takes the given load and checks against threshold, loosen motor if over
+        '''
         if abs(load) > self.OVERLOAD_THRESHOLD:
             rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.namespace, load))
             self.loosen()

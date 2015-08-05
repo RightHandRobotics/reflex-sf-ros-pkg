@@ -6,11 +6,12 @@ import reflex_sf_hand
 
 
 class TestReflexSFHand(unittest.TestCase):
+    @mock.patch('rospy.Service')
     @mock.patch('rospy.Subscriber')
     @mock.patch('motor.Motor')
     @mock.patch('rospy.loginfo')
     @mock.patch('rospy.init_node')
-    def setUp(self, init_mock, loginfo_mock, motor_mock, sub_mock):
+    def setUp(self, init_mock, loginfo_mock, motor_mock, sub_mock, service_mock):
         self.rh = reflex_sf_hand.ReflexSFHand()
 
     @mock.patch('reflex_sf_hand.ReflexSFHand.set_angles')

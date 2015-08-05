@@ -9,10 +9,6 @@ import rospkg
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 
-from reflex_msgs.msg import ReflexCommand
-from reflex_msgs.msg import PoseCommand
-from reflex_msgs.msg import TorqueCommand
-from reflex_msgs.msg import VelocityCommand
 import reflex_msgs.msg
 import motor
 
@@ -26,11 +22,16 @@ class ReflexSFHand():
                        self.namespace + '_f2': motor.Motor(self.namespace + '_f2'),
                        self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
                        self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
-        rospy.Subscriber(self.namespace + '/command', ReflexCommand, self.receive_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_position', PoseCommand, self.receive_angle_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_velocity', VelocityCommand, self.receive_vel_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_motor_torque', TorqueCommand, self.receive_torque_cmd_cb)
-        self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state', reflex_msgs.msg.Hand, queue_size=10)
+        self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
+                                              reflex_msgs.msg.Hand, queue_size=10)
+        rospy.Subscriber(self.namespace + '/command',
+                         reflex_msgs.msg.ReflexCommand, self.receive_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_position',
+                         reflex_msgs.msg.PoseCommand, self.receive_angle_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_velocity',
+                         reflex_msgs.msg.VelocityCommand, self.receive_vel_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_motor_torque',
+                         reflex_msgs.msg.TorqueCommand, self.receive_torque_cmd_cb)
         rospy.Service(self.namespace + '/zero_fingers', Empty, self.calibrate)
         rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
 
@@ -49,6 +50,7 @@ class ReflexSFHand():
         self.set_velocities(data)
 
     def receive_torque_cmd_cb(self, data):
+        self.disable_torque_control()
         self.reset_speeds()
         self.set_torque_cmds(data)
         self.enable_torque_control()
@@ -84,8 +86,10 @@ class ReflexSFHand():
     def disable_torque_control(self):
         for ID, motor in self.motors.items():
             motor.disable_torque_control()
+        rospy.sleep(0.05)  # Lets commands stop before allowing any other actions
 
     def enable_torque_control(self):
+        rospy.sleep(0.05)  # Lets other actions happen before beginning constant torque commands
         for ID, motor in self.motors.items():
             motor.enable_torque_control()
 
@@ -144,7 +148,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
 
 def main():
-    rospy.sleep(5.0)  # To allow parameters to load
+    rospy.sleep(2.0)  # To allow services and parameters to load
     hand = ReflexSFHand()
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
